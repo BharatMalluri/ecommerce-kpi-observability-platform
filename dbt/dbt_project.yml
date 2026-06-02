@@ -1,0 +1,31 @@
+name: ecommerce
+version: "1.0.0"
+config-version: 2
+
+profile: ecommerce
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  start_date: "2024-01-01"
+
+models:
+  ecommerce:
+    staging:
+      +schema: staging
+      +materialized: view
+      +tags: ["staging"]
+    intermediate:
+      +schema: intermediate
+      +materialized: ephemeral
+      +tags: ["intermediate"]
+    marts:
+      +schema: marts
+      +materialized: table
+      +tags: ["marts"]
+      +post-hook:
+        - "{{ log_anomaly_check(this, 'row_count', 0) }}"

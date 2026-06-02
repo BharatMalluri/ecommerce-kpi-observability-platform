@@ -1,0 +1,14 @@
+.env
+*.pyc
+__pycache__/
+.venv/
+venv/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+great_expectations/uncommitted/
+airflow/logs/
+airflow/airflow.db
+*.db
+*.sqlite
+.DS_Store

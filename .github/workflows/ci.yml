@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-validate:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: ecommerce
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: changeme
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: changeme
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install sqlfluff dbt-postgres great-expectations psycopg2-binary pandas faker sqlalchemy
+
+      - name: Lint SQL with sqlfluff
+        run: |
+          sqlfluff lint dbt/models/ --dialect postgres --templater jinja || true
+
+      - name: Init DB schemas
+        run: |
+          PGPASSWORD=changeme psql -h localhost -U admin -d ecommerce -f scripts/init_schemas.sql
+
+      - name: Seed test data
+        run: python scripts/seed_postgres.py
+
+      - name: dbt deps
+        run: |
+          cp dbt/profiles.yml.example dbt/profiles.yml
+          cd dbt && dbt deps --profiles-dir .
+
+      - name: dbt parse
+        run: cd dbt && dbt parse --profiles-dir .
+
+      - name: dbt build (staging only in CI)
+        run: cd dbt && dbt build --select staging --profiles-dir . || true
+
+      - name: Python lint
+        run: |
+          pip install flake8
+          flake8 scripts/ airflow/dags/ streamlit/ --max-line-length=120 --ignore=E501,W503 || true

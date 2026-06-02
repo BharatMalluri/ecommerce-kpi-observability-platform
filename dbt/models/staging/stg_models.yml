@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "Cleaned and standardised orders from raw layer"
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_id
+        tests: [not_null]
+      - name: status
+        tests:
+          - accepted_values:
+              values: ["completed", "pending", "cancelled", "refunded"]
+      - name: amount
+        tests: [not_null]
+      - name: order_date
+        tests: [not_null]
+
+  - name: stg_customers
+    description: "Cleaned customer records"
+    columns:
+      - name: customer_id
+        tests: [not_null, unique]
+      - name: email
+        tests: [not_null, unique]
+
+  - name: stg_products
+    description: "Cleaned product catalogue"
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: unit_price
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000

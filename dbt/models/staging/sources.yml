@@ -1,0 +1,64 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Raw e-commerce data loaded by the ingestion pipeline"
+    tables:
+      - name: orders
+        description: "Raw orders from CSV/API ingestion"
+        columns:
+          - name: order_id
+            description: "Unique order identifier"
+            tests:
+              - not_null
+              - unique
+          - name: customer_id
+            tests:
+              - not_null
+          - name: order_date
+            tests:
+              - not_null
+          - name: status
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["completed", "pending", "cancelled", "refunded"]
+          - name: amount
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 0
+                  max_value: 100000
+          - name: quantity
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 1
+                  max_value: 1000
+
+      - name: customers
+        description: "Raw customer records"
+        columns:
+          - name: customer_id
+            tests:
+              - not_null
+              - unique
+          - name: email
+            tests:
+              - not_null
+              - unique
+
+      - name: products
+        description: "Raw product catalogue"
+        columns:
+          - name: product_id
+            tests:
+              - not_null
+              - unique
+          - name: price
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 0
+                  max_value: 100000

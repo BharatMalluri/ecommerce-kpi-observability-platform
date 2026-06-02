@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: fct_orders
+    description: "Fact table — one row per order, fully enriched with customer and product data"
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_id
+        tests: [not_null]
+      - name: order_date
+        tests: [not_null]
+      - name: status
+        tests:
+          - accepted_values:
+              values: ["completed", "pending", "cancelled", "refunded"]
+      - name: amount
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000
+      - name: revenue
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000
+
+  - name: dim_customers
+    description: "Customer dimension with lifetime value and segmentation"
+    columns:
+      - name: customer_id
+        tests: [not_null, unique]
+      - name: customer_segment
+        tests:
+          - accepted_values:
+              values: ["high", "medium", "low"]
+      - name: lifetime_value
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1000000
+
+  - name: agg_daily_kpis
+    description: "Daily KPI aggregates with 7-day rolling averages"
+    columns:
+      - name: date
+        tests: [not_null, unique]
+      - name: total_revenue
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10000000
+      - name: cancellation_rate_pct
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
