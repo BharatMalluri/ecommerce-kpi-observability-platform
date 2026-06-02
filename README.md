@@ -1,10 +1,10 @@
 # P1 E-Commerce Data Pipeline
 
-> **Production-style data engineering portfolio project** — built to match Germany enterprise job expectations.
+> \*\*Production-style data engineering portfolio project\*\* — built to match Germany enterprise job expectations.
 
-![CI](https://github.com/YOUR_USERNAME/p1-ecommerce-pipeline/actions/workflows/ci.yml/badge.svg)
+!\[CI](https://github.com/BharatMalluri/p1-ecommerce-pipeline/actions/workflows/ci.yml/badge.svg)
 
----
+\---
 
 ## Architecture
 
@@ -48,52 +48,57 @@ CSV/API e-commerce data
 
 ## Stack
 
-| Layer | Tool | Version |
-|---|---|---|
-| Orchestration | Apache Airflow | 2.9.1 |
-| Transformation | dbt-postgres | 1.8.0 |
-| Validation | Great Expectations | 0.18.14 |
-| Storage | PostgreSQL | 15 |
-| Monitoring | Prometheus + Grafana | 2.52 / 10.4 |
-| Dashboard | Streamlit | 1.35.0 |
-| Alerting | Slack SDK | 3.27.1 |
+|Layer|Tool|Version|
+|-|-|-|
+|Orchestration|Apache Airflow|2.9.1|
+|Transformation|dbt-postgres|1.8.0|
+|Validation|Great Expectations|0.18.14|
+|Storage|PostgreSQL|15|
+|Monitoring|Prometheus + Grafana|2.52 / 10.4|
+|Dashboard|Streamlit|1.35.0|
+|Alerting|Slack SDK|3.27.1|
 
----
+\---
 
 ## Quick Start
 
 ### Prerequisites
-- Docker + Docker Compose
-- Python 3.11+
-- `git`
 
-### 1. Clone and configure
+* Docker + Docker Compose
+* Python 3.11+
+* `git`
+
+### 1\. Clone and configure
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/p1-ecommerce-pipeline.git
+git clone https://github.com/YOUR\_USERNAME/p1-ecommerce-pipeline.git
 cd p1-ecommerce-pipeline
 cp .env.example .env
 # Edit .env with your values
 ```
 
-### 2. Start the stack
+### 2\. Start the stack
+
 ```bash
 docker compose up -d
 ```
 
-| Service | URL | Credentials |
-|---|---|---|
-| Airflow | http://localhost:8080 | admin / admin |
-| Grafana | http://localhost:3000 | admin / admin |
-| Prometheus | http://localhost:9090 | — |
-| Streamlit | http://localhost:8501 | — |
+|Service|URL|Credentials|
+|-|-|-|
+|Airflow|http://localhost:8080|admin / admin|
+|Grafana|http://localhost:3000|admin / admin|
+|Prometheus|http://localhost:9090|—|
+|Streamlit|http://localhost:8501|—|
 
-### 3. Seed data
+### 3\. Seed data
+
 ```bash
 pip install -r requirements.txt
-python scripts/seed_postgres.py
+python scripts/seed\_postgres.py
 ```
 
-### 4. Set up dbt
+### 4\. Set up dbt
+
 ```bash
 cp dbt/profiles.yml.example dbt/profiles.yml
 cd dbt
@@ -101,44 +106,47 @@ dbt deps
 dbt build
 ```
 
-### 5. Trigger Airflow DAGs
-Go to http://localhost:8080 → unpause `ingest_orders` → trigger manually.
+### 5\. Trigger Airflow DAGs
 
----
+Go to http://localhost:8080 → unpause `ingest\_orders` → trigger manually.
+
+\---
 
 ## dbt Models
 
 ```
 models/
 ├── staging/          # Clean raw data (views)
-│   ├── stg_orders.sql
-│   ├── stg_customers.sql
-│   └── stg_products.sql
+│   ├── stg\_orders.sql
+│   ├── stg\_customers.sql
+│   └── stg\_products.sql
 ├── intermediate/     # Joins + enrichment (ephemeral)
-│   └── int_orders_enriched.sql
+│   └── int\_orders\_enriched.sql
 └── marts/            # Business-ready tables
-    ├── fct_orders.sql        # Fact table
-    ├── dim_customers.sql     # Customer LTV + segments
-    └── agg_daily_kpis.sql    # Daily KPIs + 7d rolling avg
+    ├── fct\_orders.sql        # Fact table
+    ├── dim\_customers.sql     # Customer LTV + segments
+    └── agg\_daily\_kpis.sql    # Daily KPIs + 7d rolling avg
 ```
 
 ## Data Quality
 
 **Great Expectations** validates on ingest:
-- Schema presence
-- Null checks
-- Value ranges
-- Status enum enforcement
+
+* Schema presence
+* Null checks
+* Value ranges
+* Status enum enforcement
 
 **dbt tests** validate after transformation:
-- `not_null`, `unique` on all keys
-- `accepted_values` for status fields
-- Range checks via `dbt_expectations`
-- Singular tests for revenue freshness
 
-**Anomaly log** in `monitoring.anomaly_log` — every mart post-hook writes a row count check result.
+* `not\_null`, `unique` on all keys
+* `accepted\_values` for status fields
+* Range checks via `dbt\_expectations`
+* Singular tests for revenue freshness
 
----
+**Anomaly log** in `monitoring.anomaly\_log` — every mart post-hook writes a row count check result.
+
+\---
 
 ## Project Structure
 
@@ -152,7 +160,7 @@ p1-ecommerce-pipeline/
 │   ├── models/marts/
 │   ├── macros/
 │   └── tests/
-├── great_expectations/            # GE config + expectations
+├── great\_expectations/            # GE config + expectations
 ├── monitoring/                    # Prometheus + Grafana
 ├── streamlit/                     # Dashboard app
 ├── scripts/                       # Seed + init scripts
@@ -160,14 +168,15 @@ p1-ecommerce-pipeline/
 └── requirements.txt
 ```
 
----
+\---
 
 ## Skills Demonstrated
 
-- ✅ ELT pipeline design (ingest → validate → transform → serve)
-- ✅ dbt modelling (staging / intermediate / marts pattern)
-- ✅ Data quality framework (GE + dbt tests + anomaly tables)
-- ✅ Orchestration with Airflow (DAGs, sensors, retries)
-- ✅ Warehouse modelling in PostgreSQL
-- ✅ Operational monitoring (Prometheus + Grafana)
-- ✅ Production mindset (CI, logging, alerting, documentation)
+* ✅ ELT pipeline design (ingest → validate → transform → serve)
+* ✅ dbt modelling (staging / intermediate / marts pattern)
+* ✅ Data quality framework (GE + dbt tests + anomaly tables)
+* ✅ Orchestration with Airflow (DAGs, sensors, retries)
+* ✅ Warehouse modelling in PostgreSQL
+* ✅ Operational monitoring (Prometheus + Grafana)
+* ✅ Production mindset (CI, logging, alerting, documentation)
+
