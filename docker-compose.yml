@@ -29,7 +29,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init_schemas.sql:/docker-entrypoint-initdb.d/init_schemas.sql
@@ -41,7 +41,7 @@ services:
   airflow-webserver:
     <<: *airflow-common
     ports:
-      - "8080:8080"
+      - "8888:8080"
     command: webserver
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]

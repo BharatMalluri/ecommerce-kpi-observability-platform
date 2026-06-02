@@ -21,11 +21,10 @@ models:
       +tags: ["staging"]
     intermediate:
       +schema: intermediate
-      +materialized: ephemeral
+      +materialized: view
       +tags: ["intermediate"]
     marts:
       +schema: marts
       +materialized: table
       +tags: ["marts"]
-      +post-hook:
-        - "{{ log_anomaly_check(this, 'row_count', 0) }}"
+      

@@ -1,62 +1,41 @@
-"""
-seed_postgres.py
-Generates synthetic e-commerce data and loads it into raw schema.
-Run: python scripts/seed_postgres.py
-"""
 import os
 import random
 from datetime import datetime, timedelta
+from io import StringIO
 
 import pandas as pd
 from faker import Faker
-from sqlalchemy import create_engine, text
+import psycopg2
 
 fake = Faker()
 random.seed(42)
 Faker.seed(42)
 
-# ── Connection ────────────────────────────────────────────────────────────────
-DB_URL = (
-    f"postgresql+psycopg2://"
-    f"{os.getenv('POSTGRES_USER','admin')}:"
-    f"{os.getenv('POSTGRES_PASSWORD','changeme')}@"
-    f"{os.getenv('POSTGRES_HOST','localhost')}:"
-    f"{os.getenv('POSTGRES_PORT','5432')}/"
-    f"{os.getenv('POSTGRES_DB','ecommerce')}"
-)
-engine = create_engine(DB_URL)
+COUNTRIES  = ["DE", "AT", "CH", "FR", "NL", "PL", "ES", "IT"]
+STATUSES   = ["completed", "completed", "completed", "pending", "cancelled", "refunded"]
+CATEGORIES = ["Electronics", "Clothing", "Home & Garden", "Sports", "Books", "Toys"]
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-COUNTRIES   = ["DE", "AT", "CH", "FR", "NL", "PL", "ES", "IT"]
-STATUSES    = ["completed", "completed", "completed", "pending", "cancelled", "refunded"]
-CATEGORIES  = ["Electronics", "Clothing", "Home & Garden", "Sports", "Books", "Toys"]
+def random_date(days=365):
+    return datetime.now() - timedelta(days=random.randint(0, days))
 
-def random_date(start_days_ago=365):
-    return datetime.now() - timedelta(days=random.randint(0, start_days_ago))
-
-# ── Generate data ─────────────────────────────────────────────────────────────
-N_CUSTOMERS = 500
-N_PRODUCTS  = 80
-N_ORDERS    = 3000
-
-print(f"Generating {N_CUSTOMERS} customers...")
+print("Generating 500 customers...")
 customers = pd.DataFrame([{
-    "customer_id":  f"CUST-{str(i).zfill(5)}",
-    "name":         fake.name(),
-    "email":        fake.email(),
-    "signup_date":  random_date(730),
-    "country":      random.choice(COUNTRIES),
-} for i in range(1, N_CUSTOMERS + 1)])
+    "customer_id": f"CUST-{str(i).zfill(5)}",
+    "name":        fake.name(),
+    "email":       fake.email(),
+    "signup_date": random_date(730),
+    "country":     random.choice(COUNTRIES),
+} for i in range(1, 501)])
 
-print(f"Generating {N_PRODUCTS} products...")
+print("Generating 80 products...")
 products = pd.DataFrame([{
     "product_id": f"PROD-{str(i).zfill(4)}",
     "name":       fake.bs().title(),
     "category":   random.choice(CATEGORIES),
     "price":      round(random.uniform(5.0, 499.99), 2),
-} for i in range(1, N_PRODUCTS + 1)])
+} for i in range(1, 81)])
 
-print(f"Generating {N_ORDERS} orders...")
+print("Generating 3000 orders...")
 orders = pd.DataFrame([{
     "order_id":    f"ORD-{str(i).zfill(6)}",
     "customer_id": random.choice(customers["customer_id"].tolist()),
@@ -66,18 +45,34 @@ orders = pd.DataFrame([{
     "product_id":  random.choice(products["product_id"].tolist()),
     "quantity":    random.randint(1, 10),
     "country":     random.choice(COUNTRIES),
-} for i in range(1, N_ORDERS + 1)])
+} for i in range(1, 3001)])
 
-# Introduce some intentional quality issues for GE to catch
-orders.loc[orders.sample(frac=0.02).index, "amount"] = None      # 2% nulls
-orders.loc[orders.sample(frac=0.01).index, "status"] = "UNKNOWN" # invalid status
+orders.loc[orders.sample(frac=0.02).index, "amount"] = None
+orders.loc[orders.sample(frac=0.01).index, "status"] = "UNKNOWN"
 
-# ── Load ──────────────────────────────────────────────────────────────────────
-with engine.begin() as conn:
-    conn.execute(text("TRUNCATE raw.customers, raw.products, raw.orders"))
+conn = psycopg2.connect(
+    host=os.getenv("POSTGRES_HOST", "localhost"),
+    port=int(os.getenv("POSTGRES_PORT", "5433")),
+    dbname=os.getenv("POSTGRES_DB", "ecommerce"),
+    user=os.getenv("POSTGRES_USER", "admin"),
+    password=os.getenv("POSTGRES_PASSWORD", "changeme"),
+)
+cur = conn.cursor()
+cur.execute("TRUNCATE raw.customers, raw.products, raw.orders")
 
-customers.to_sql("customers", engine, schema="raw", if_exists="append", index=False)
-products.to_sql("products",  engine, schema="raw", if_exists="append", index=False)
-orders.to_sql("orders",      engine, schema="raw", if_exists="append", index=False)
+def copy_df(df, table):
+    buf = StringIO()
+    df.to_csv(buf, index=False, header=False, na_rep="")
+    buf.seek(0)
+    cols = ",".join(df.columns)
+    cur.copy_expert(f"COPY raw.{table} ({cols}) FROM STDIN WITH CSV", buf)
 
-print(f"✅ Loaded: {len(customers)} customers, {len(products)} products, {len(orders)} orders into raw schema.")
+copy_df(customers, "customers")
+copy_df(products, "products")
+copy_df(orders, "orders")
+
+conn.commit()
+cur.close()
+conn.close()
+
+print("Loaded: 500 customers, 80 products, 3000 orders into raw schema.")
